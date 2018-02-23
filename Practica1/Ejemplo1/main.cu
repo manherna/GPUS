@@ -32,7 +32,10 @@ __global__ void addMatrixGPU(float *a, float *b, float *c, int N )
 {
 	
 	int val = threadIdx.x + blockDim.x * blockIdx.x;
-	if(val >= 0 && val < N*N)a[val] = b[val]+c[val];
+	int val2 = threadIdx.y + blockDim.y * blockIdx.y;
+	
+	int sol = val + N*val2;
+	if(val < N && val2 < N) a[sol] = b[sol]+c[sol];
 	
 }
 
@@ -82,7 +85,7 @@ int main(int argc, char *argv[])
 	dim3 nThreads_per_block(1024,1,1); //
 	dim3 nBlocks(ceil((N*N)/1024),1,1); //
 	t0 = wtime();
-	addMatrixGPU<<<nThreads_per_block,nBlocks>>>(a_GPU, b_GPU, c_GPU, N);
+	addMatrixGPU<<<nBlocks,nThreads_per_block>>>(a_GPU, b_GPU, c_GPU, N);
 	cudaThreadSynchronize();
 	t1 = wtime(); printf("Time GPU=%f\n", t1-t0);
 
