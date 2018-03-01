@@ -31,11 +31,11 @@ void addMatrix(float *a, float *b, float *c, int N)
 __global__ void addMatrixGPU(float *a, float *b, float *c, int N )
 {
 	
-	int val = threadIdx.x + blockDim.x * blockIdx.x;
-	int val2 = threadIdx.y + blockDim.y * blockIdx.y;
+	int i = threadIdx.x + blockDim.x * blockIdx.x;
+	int j = threadIdx.y + blockDim.y * blockIdx.y;
 	
-	int sol = val + N*val2;
-	if(val < N && val2 < N) a[sol] = b[sol]+c[sol];
+	int sol = i*N + j;
+	if(i < N && j < N) a[sol] = b[sol]+c[sol];
 	
 }
 
@@ -55,12 +55,11 @@ int main(int argc, char *argv[])
 		printf("Error!!!! \n ./exec number\n");
 	return (0);
 	}
-
-	// Mallocs CPU
+	/* Mallocs CPU*/
 	int size = sizeof(float)*N*N;
-	a  = (float *)malloc(sizeof(float)*N*N);
-	b  = (float *)malloc(sizeof(float)*N*N);
-	c  = (float *)malloc(sizeof(float)*N*N);
+	a  = (float *)malloc(size);
+	b  = (float *)malloc(size);
+	c  = (float *)malloc(size);
 	for (i=0; i<N*N; i++){ b[i] = i-1; c[i] = i;}
 
 	/*****************/
@@ -69,29 +68,29 @@ int main(int argc, char *argv[])
 	t0 = wtime();
 	addMatrix(a, b, c, N);
 	t1 = wtime(); printf("Time CPU=%f\n", t1-t0);
-
+	
 	/* Mallocs GPU */
-	cudaMalloc((void **) &a_GPU, size); //
-	cudaMalloc((void **) &b_GPU, size);
-	cudaMalloc((void **) &c_GPU, size);
-
+	cudaMalloc ((void **)&a_GPU, size);
+	cudaMalloc ((void **)&b_GPU, size);
+	cudaMalloc ((void **)&c_GPU, size);
+	
 	/* CPU->GPU */
-	cudaMemcpy(c_GPU,c, size, cudaMemcpyHostToDevice); //
-	cudaMemcpy(b_GPU,b, size, cudaMemcpyHostToDevice);
+	cudaMemcpy(b_GPU, b, size, cudaMemcpyHostToDevice);
+	cudaMemcpy(c_GPU, c, size, cudaMemcpyHostToDevice);
+	
+	dim3 num_Blocks (ceil(N/32.0),ceil(N/32.0),1);
+	dim3 threads_per_Block(32,32,1);
 
-	/*****************/
-	/* Add Matrix GPU*/
-	/*****************/
-	dim3 nThreads_per_block(1024,1,1); //
-	dim3 nBlocks(ceil((N*N)/1024),1,1); //
 	t0 = wtime();
-	addMatrixGPU<<<nBlocks,nThreads_per_block>>>(a_GPU, b_GPU, c_GPU, N);
-	cudaThreadSynchronize();
-	t1 = wtime(); printf("Time GPU=%f\n", t1-t0);
 
-	/* GPU->CPU */
-	a_host  = (float *)malloc(sizeof(float)*N*N);
-	cudaMemcpy(a_host, a_GPU, size, cudaMemcpyDeviceToHost); //
+	addMatrixGPU<<<num_Blocks,threads_per_Block>>>(a_GPU, b_GPU, c_GPU, N);
+	cudaThreadSynchronize();
+	
+	t1 = wtime(); printf("Time GPU=%f\n", t1-t0);
+	
+	a_host = (float *)malloc(size);
+
+	cudaMemcpy(a_host, a_GPU, size, cudaMemcpyDeviceToHost);
 
 	/************/
 	/* Results  */
@@ -105,6 +104,7 @@ int main(int argc, char *argv[])
 	for (i=0; i<N; i++)
 		for (j=0; j<N; j++)
 			a_host[i*N+j] = -111;
+	
 	/* Free CPU */
 	free(a);
 	free(b);
@@ -116,7 +116,40 @@ int main(int argc, char *argv[])
 	cudaFree(b_GPU);
 	cudaFree(c_GPU);
 
+	return 1;
 
-	return(1);
+	
+
+	/****************
+	/* Add Matrix CPU
+	/****************
+	t0 = wtime();
+	addMatrix(a, b, c, N);
+	t1 = wtime(); printf("Time CPU=%f\n", t1-t0);
+
+	/* Mallocs GPU 
+	cudaMalloc((void **) &a_GPU, size); //
+	cudaMalloc((void **) &b_GPU, size);
+	cudaMalloc((void **) &c_GPU, size);
+
+	/* CPU->GPU 
+	cudaMemcpy(c_GPU,c, size, cudaMemcpyHostToDevice); //
+	cudaMemcpy(b_GPU,b, size, cudaMemcpyHostToDevice);
+
+	/*****************/
+	/* Add Matrix GPU
+	/****************
+	dim3 nThreads_per_block(1024,1,1); //
+	dim3 nBlocks(ceil((N*N)/1024),1,1); //
+	t0 = wtime();
+	addMatrixGPU<<<nBlocks,nThreads_per_block>>>(a_GPU, b_GPU, c_GPU, N);
+	cudaThreadSynchronize();
+	t1 = wtime(); printf("Time GPU=%f\n", t1-t0);
+
+	/* GPU->CPU 
+	a_host  = (float *)malloc(sizeof(float)*N*N);
+	cudaMemcpy(a_host, a_GPU, size, cudaMemcpyDeviceToHost); //
+        */
+	
 }
 

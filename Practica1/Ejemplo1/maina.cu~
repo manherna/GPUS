@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 	cudaMemcpy(b_GPU, b, size, cudaMemcpyHostToDevice);
 	cudaMemcpy(c_GPU, c, size, cudaMemcpyHostToDevice);
 	
-	dim3 num_Blocks (ceil(N/16.0),ceil(N/16.0),1);
+	dim3 num_Blocks (N/16 +1,N/16 +1,1);
 	dim3 threads_per_Block(16,16,1);
 
 	t0 = wtime();
