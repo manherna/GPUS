@@ -11,8 +11,8 @@ __global__
 void matMulGPU(float * A, float * B, int hA, int wA, int wB, float *C){
 	
 	
-        int i = blockIdx.x*blockDim.x+threadIdx.x;
-        int j = blockIdx.y*blockDim.y+threadIdx.y;
+       int i = blockIdx.x*blockDim.x+threadIdx.x;
+       int j = blockIdx.y*blockDim.y+threadIdx.y;
 
        float suma = 0;
 

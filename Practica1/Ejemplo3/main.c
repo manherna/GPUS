@@ -2,7 +2,10 @@
 #include "matrix_mul.h"
 #include <malloc.h>
 #include <stdlib.h>
+#include <math.h>
 
+#include <cuda.h>
+#define BLOCK_SIZE 16 
 
 void init_matrix(float *M, int hM, int wM, float k)
 {
@@ -43,7 +46,7 @@ int diff(float *A, float *B, int hA, int wA, int wB, float *C)
 				C_cpu[i*wB+j] += A[i*wA+k]*B[k*wB+j];
 			}
 		}
-	//printf("\n\nMATRIX C_cpu\n");print_matrix(C_cpu, hA, wB);
+	printf("\n\nMATRIX C_cpu\n");print_matrix(C_cpu, hA, wB);
 
 	for (i=0; i<hA; i++)
 		for (j=0; j<wB; j++)
@@ -67,6 +70,9 @@ int main(int argc, char** argv)
 	float *A, *B, *C;
 	int hA, wA, hB, wB;
 	int i;
+	
+	float *d_A, *d_B, *d_C;/*......*/
+	float *h_A, *h_B, *h_C;/*......*/
 
 	setbuf(stdout, NULL);
 
@@ -78,6 +84,7 @@ int main(int argc, char** argv)
 	hA = atoi(argv[1]);
 	hB = wA = atoi(argv[2]);
 	wB = atoi(argv[3]);
+	
 
 	// Init A and B, malloc C
 	int size_A = wA * hA;
@@ -94,20 +101,47 @@ int main(int argc, char** argv)
 		C[i] = 0.0;
 	}
 
+		
+	dim3 block(BLOCK_SIZE,BLOCK_SIZE); /*..........*/	
+	dim3 grid(2,2);/*..........*/
+
+	cudaMalloc((void**)&d_A, (size_A*sizeof(float)); /*......*/
+	cudaMalloc((void**)&d_B, (size_B*sizeof(float));
+	cudaMalloc((void**)&d_C, (size_C*sizeof(float));
+
+	h_A = (float*)malloc(size_A*sizeof(float)); /*......*/
+	h_B = (float*)malloc(size_B*sizeof(float));
+	h_C = (float*)malloc(size_C*sizeof(float));
+
 
 	Mul(A, B, hA, wA, wB, C);
 	//printf("\n\nMATRIX A\n");print_matrix(A, hA, wA);
 	//printf("\n\nMATRIX B\n");print_matrix(B, hB, wB);
-	//printf("\n\nMATRIX C\n");print_matrix(C, hA, wB);
 
-	if (!diff(A, B, hA, wA, wB, C))
-		printf("ERROR=GPU.vs.CPU matrix mult differs\n");
+
+
+
+
+	cudaMemcpy(d_A,h_A,size_A,cudaMemcpyHostToDevice); /*......*/
+	cudaMemcpy(d_B,h_B,size_B,cudaMemcpyHostToDevice);
+
+	mulMat<<<grid,block>>>(d_C,d_A,d_B);
+	cudaMemcpy(h_C,d_C,size_C,cudaMemcpyDeviceToHost);
 	
+
+	if (!diff(A, B, hA, wA, wB, C));
+		//printf("ERROR=GPU.vs.CPU matrix mult differs\n");
+	
+	printf("\n\nMATRIX C_GPU\n");print_matrix(C, hA, wB);
 
 	// print Matrix
 	//printf("\n\nMATRIX A\n");print_matrix(A, hA, wA);
 	//printf("\n\nMATRIX B\n");print_matrix(B, hB, wB);
 	//printf("\n\nMATRIX C\n");print_matrix(C, hA, wB);
+
+
+	cudaFree(d_A); cudaFree(d_B); cudaFree(d_C); /*......*/
+	free(h_A); free(h_B); free(h_C);
 
 	return (1);
 }
