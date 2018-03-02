@@ -10,13 +10,17 @@
 __global__
 void matMulGPU(float * A, float * B, int hA, int wA, int wB, float *C){
 	
-	int i = threadIdx.x + blockDim.x * blockIdx.x;//cl
-	int j = threadIdx.y + blockDim.y * blockIdx.y;
+	
+        int i = blockIdx.x*blockDim.x+threadIdx.x;
+        int j = blockIdx.y*blockDim.y+threadIdx.y;
 
-	for(int k = 0; k < wA; k++){
-		if(i >= 0 && i<hA && j>= 0 && j<wB) C[i*wA+j] = A[i*wA+k]*B[k*wA+j];	
-	}
+       float suma = 0;
 
+    	if (i < wA&& j < wA) {
+        	for (int k = 0; k < wA; k++) suma += A[i*wA + k] * B[k*wA + j];
+        	
+    	}
+   	 C[i*wA + j] = suma;
 }
 
 
