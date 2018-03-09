@@ -14,41 +14,32 @@ __global__ void Muld(float*, float*, int, int, float*);
 // wB is the width of B
 
 //export void Mul(float*, float*, int, int, int, float*);
+
  void Mul(float* A, float* B, int hA, int wA, int wB,
 	float* C)
 {
-	int size;
+	float *d_A, *d_B, *d_C;/*......*/
+	dim3 block(BLOCK_SIZE,BLOCK_SIZE); /*..........*/	
+	dim3 grid(2,2);/*..........*/
 
-	// Load A and B to BLOCK_SIZEthe device
-	float* Ad;
-	size = hA * wA * sizeof(float);
-	cudaMalloc((void**)&Ad, size);
-	cudaMemcpy(Ad, A, size, cudaMemcpyHostToDevice);
-	float* Bd;
-	size = wA * wB * sizeof(float);
-	cudaMalloc((void**)&Bd, size);
-	cudaMemcpy(Bd, B, size, cudaMemcpyHostToDevice);
 
-	// Allocate C on the device
-	float* Cd;
-	size = hA * wB * sizeof(float);
-	cudaMalloc((void**)&Cd, size);
+	int size_A = wA * hA*sizeof(float);
+	int size_B = wB * hA*sizeof(float);
+	int size_C = wB * hA*sizeof(float);
 
-	// Compute the execution configuration assuming
-	// the matrix dimensions are multiples of BLOCK_SIZE
-	dim3 dimBlock(BLOCK_SIZE, BLOCK_SIZE);
-	dim3 dimGrid(wB / dimBlock.x, hA / dimBlock.y);
+	cudaMalloc((void**)&d_A, size_A); /*......*/
+	cudaMalloc((void**)&d_B, size_B);
+	cudaMalloc((void**)&d_C, size_C);
 
-	// Launch the device computation
-	Muld<<<dimGrid, dimBlock>>>(Ad, Bd, wA, wB, Cd);
 
-	// Read C from the device
-	cudaMemcpy(C, Cd, size, cudaMemcpyDeviceToHost);
+	cudaMemcpy(d_A,A,size_A,cudaMemcpyHostToDevice); /*......*/
+	cudaMemcpy(d_B,B,size_B,cudaMemcpyHostToDevice);
 
-	// Free device memory
-	cudaFree(Ad);
-	cudaFree(Bd);
-	cudaFree(Cd);
+	Muld<<<grid,block>>>(d_A, d_B, wA, wB, d_C);
+
+	cudaMemcpy(C,d_C,size_C,cudaMemcpyDeviceToHost);
+
+	cudaFree(d_A); cudaFree(d_B); cudaFree(d_C); /*......*/
 }
 
 // Device multiplication function called by Mul()
@@ -83,15 +74,15 @@ __global__ void Muld(float* A, float* B, int wA, int wB, float* C)
 	// The element of the block sub-matrix that is computed
 	// by the thread
 	float Csub = 0;
+	// Shared memory for the sub-matrix of A
+	__shared__ float As[BLOCK_SIZE][BLOCK_SIZE];
 
+		// Shared memory for the sub-matrix of B
+	__shared__ float Bs[BLOCK_SIZE][BLOCK_SIZE];
 	// Loop over all the sub-matrices of A and B required to
 	// compute the block sub-matrix
 	for (int a = aBegin, b = bBegin; a <= aEnd; a += aStep, b += bStep) {
-		// Shared memory for the sub-matrix of A
-		__shared__ float As[BLOCK_SIZE][BLOCK_SIZE];
-
-		// Shared memory for the sub-matrix of B
-		__shared__ float Bs[BLOCK_SIZE][BLOCK_SIZE];
+		
 
 		// Load the matrices from global memory to shared memory;
 		// each thread loads one element of each matrix
@@ -117,5 +108,33 @@ __global__ void Muld(float* A, float* B, int wA, int wB, float* C)
 	
 	int out = wB * BLOCK_SIZE * by + BLOCK_SIZE * bx;
 	C[out + wB *ty + tx] = Csub;
+
 	/* ..........................*/
 }
+
+
+//	float *d_A, *d_B, *d_C;/*......*/
+//	float *h_A, *h_B, *h_C;/*......*/
+//	dim3 block(BLOCK_SIZE,BLOCK_SIZE); /*..........*/	
+//	dim3 grid(2,2);/*..........*/
+
+
+//	int size_A = wA * hA;
+//	int size_B = wB * wA;
+//	int size_C = wB * hA;
+//	cudaMalloc((void**)&d_A, size_A); /*......*/
+//	cudaMalloc((void**)&d_B, size_B);
+//	cudaMalloc((void**)&d_C, size_C);
+
+//	h_A = (float*)malloc(size_A*sizeof(float)); /*......*/
+//	h_B = (float*)malloc(size_B*sizeof(float));
+//	h_C = (float*)malloc(size_C*sizeof(float));
+
+//	cudaMemcpy(d_A,h_A,size_A,cudaMemcpyHostToDevice); /*......*/
+//	cudaMemcpy(d_B,h_B,size_B,cudaMemcpyHostToDevice);
+
+//	Muld<<<grid,block>>>(d_A, d_B, wA, wB, d_C);
+//	cudaMemcpy(C,d_C,size_C,cudaMemcpyDeviceToHost);
+
+//	cudaFree(d_A); cudaFree(d_B); cudaFree(d_C); /*......*/
+//	free(h_A); free(h_B); free(h_C);
