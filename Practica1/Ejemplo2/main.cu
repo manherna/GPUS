@@ -140,8 +140,8 @@ int main(int argc, char** argv)
 	cudaMemcpy(b_GPU, B, size_B*sizeof(float), cudaMemcpyHostToDevice);
 	
 	
-	dim3 num_Blocks (ceil(wB*hA/32.0),ceil(wB*hA/32.0),1);
-	dim3 threads_per_Block(32,32,1);
+	dim3 num_Blocks (ceil(wB*hA/8.0),ceil(wB*hA/8.0),1);
+	dim3 threads_per_Block(8,8,1);
 	
 	matMulGPU<<<num_Blocks, threads_per_Block>>>(a_GPU, b_GPU, hA, wA, wB, c_GPU);
 	cudaThreadSynchronize();
