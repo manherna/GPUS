@@ -1,3 +1,13 @@
+/*
+	Filtrado Canny de imagenes.
+	Práctica 1 de la asignatura de Programación de GPUs y aceleradores
+	Autores: Alejandro Ortega Y Manuel Hernández
+
+*/
+
+
+
+
 #include <cuda.h>
 #include <math.h>
 
@@ -5,6 +15,10 @@
 
 #define PI 3.141593
 #define BLOCK_SIZE 16
+
+
+
+	
 
 
 __global__
