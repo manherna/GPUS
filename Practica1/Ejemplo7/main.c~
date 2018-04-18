@@ -310,7 +310,7 @@ int main(int argc, char **argv) {
 	}
 
 	// WRITE IMAGE
-	writeBMP(imageOUT, argv[2], header, width, height);
+	writeBMP(G, argv[2], header, width, height);
 
 	freeMemory(imageUCHAR, imageBW, NR, G, phi, Gx, Gy, pedge, imageOUT);	
 
