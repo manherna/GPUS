@@ -79,7 +79,7 @@ void noiseReductionGPU(float *im, float * im_NR_out, int h, int width){
 	}
 	
 	__syncthreads();
-	if(i > 2 && i < h-2 && j >2 && j < width-2)
+	if(i >= 2 && i < h-2 && j >= 2 && j < width-2)
 	{
 		
 		im_NR_out[i*width+j] = 
@@ -96,7 +96,7 @@ void noiseReductionGPU(float *im, float * im_NR_out, int h, int width){
 }
 
 __global__ 
-void imageGradientGPU (float *im, float * im_out, int h, int width) {
+void imageGradientGPU (float *im, float * im_out, float * G, int h, int width, float level) {
 	
 
 
@@ -107,10 +107,10 @@ void imageGradientGPU (float *im, float * im_out, int h, int width) {
 
 	//Coalescencia o k ase
 	__shared__ float shared_block [BLOCK_SIZE+5][BLOCK_SIZE+4];
-	 
 	
 	//Shared block guarda los pixels de la imagen CON noise reduction
 	shared_block[x+2][y+2] = im[i*width+j];
+
 
 
 	//LLenado de la memoria compartida
@@ -173,7 +173,9 @@ void imageGradientGPU (float *im, float * im_out, int h, int width) {
 	
 	float Gx, Gy; 
 	
-	if(i > 2 && i < h-2 && j >2 && j < width-2)
+	
+	
+	if(i >= 2 && i < h-2 && j >= 2 && j < width-2)
 	{
 		
 		Gx = 	 (1.0*shared_block[x][y]   +  2.0*shared_block[x+1][y  ] +  (-2.0)*shared_block[x+3][y  ] + (-1.0)*shared_block[x+4][y  ]
@@ -190,12 +192,69 @@ void imageGradientGPU (float *im, float * im_out, int h, int width) {
 			+   1.0*shared_block[x][y+4] +    4.0*shared_block[x+1][y+4] +     6.0*shared_block[x+2][y+4] +    4.0*shared_block[x+3][y+4]+    1.0*shared_block[x+4][y+4]);
 
 
-
-		im_out[i*width+j] = sqrtf((Gx*Gx)+(Gy*Gy));
+		//Gradiente stored en im_out
+		G[i*width + j] = sqrtf((Gx*Gx)+(Gy*Gy));
 		
 	}
 	
-	else if (i<h && j<width) im_out[i*width+j] = 0.0;
+	else if (i<h && j<width) G [i*width+j] = 0.0;
+	
+	__syncthreads();
+
+	
+	//Solo necesitamos un phi, porque computamos el phi de cada hilo
+	float phi = atan2f(fabs(Gy), fabs(Gx));
+
+	if(fabs(phi)<=PI/8 ) phi = 0;
+	else if (fabs(phi) <= 3*(PI/8)) phi = 45;
+	else if (fabs(phi) <= 5*(PI/8)) phi = 90;
+	else if (fabs(phi) <= 7*(PI/8))	phi = 135;
+	else phi = 0;
+	
+	//Aquí vemos si el valor en la imagen es un borde o no.
+	int pedge = 0;
+	if(i >= 3 && i < h -3 && j >= 3 && j < width - 3){
+		
+		if(phi== 0){
+			if(G[i*width+j]>G[i*width+j+1] && G[i*width+j]>G[i*width+j-1]) //edge is in N-S
+					pedge = 1;
+
+		} else if(phi == 45) {
+			if(G[i*width+j]>G[(i+1)*width+j+1] && G[i*width+j]>G[(i-1)*width+j-1]) // edge is in NW-SE
+					pedge= 1;
+
+		} else if(phi == 90) {
+			if(G[i*width+j]>G[(i+1)*width+j] && G[i*width+j]>G[(i-1)*width+j]) //edge is in E-W
+					pedge = 1;
+
+		} else if(phi == 135) {
+			if(G[i*width+j]>G[(i+1)*width+j-1] && G[i*width+j]>G[(i-1)*width+j+1]) // edge is in NE-SW
+					pedge = 1;
+			}
+
+
+	}
+
+	im_out[i*width +j] = 0;
+	float hithres, lowthres;
+
+
+	// Hysteresis Thresholding
+	lowthres = level/2.0;
+	hithres  = 2.0*(level);
+
+	if(i >= 3 && i < h-3 && j >= 3 && j< width - 3){
+		if(G[i*width+j]>hithres && pedge)
+			im_out[i*width+j] = 255;
+		else if(pedge && G[i*width+j]>=lowthres && G[i*width+j]<hithres)
+			// check neighbours 3x3
+			for (int ii = -1; ii <= 1; ii++)
+				for (int jj = -1; jj<= 1; jj++)
+			 		if (G[(i+ii)*width+j+jj]>hithres){
+						im_out[i*width+j] = 255;
+						break;
+					}
+	} 
 	
 	
 	
@@ -215,25 +274,31 @@ void /*__global__*/ cannyGPU(float *im, float *image_out,
 	//Variables para guardar la imagen antes y después
 	float * im_GPU;
 	float * im_out_GPU;
+	float * im_out_NR;
+	
+	float * temp_Gradient;
+
+
+
 	int IMG_SIZE = height*width*sizeof(float);
 
 	//Reserva de memoria
 	cudaMalloc((void**)&im_GPU, IMG_SIZE);
 	cudaMalloc((void**)&im_out_GPU, IMG_SIZE);
+	cudaMalloc((void**)&temp_Gradient, IMG_SIZE);
+	cudaMalloc((void**)&im_out_NR, IMG_SIZE);
 	cudaMemcpy(im_GPU,im, IMG_SIZE, cudaMemcpyHostToDevice);
 
 	//LLamada a las funciones de tratado de imagen
-	noiseReductionGPU<<<numBlocks,threadsPerBlock>>>(im_GPU, im_out_GPU, height, width);
-		
-	cudaMemcpy(im_GPU, im_out_GPU, IMG_SIZE, cudaMemcpyDeviceToDevice);
-	
-	imageGradientGPU<<<numBlocks,threadsPerBlock>>>(im_GPU, im_out_GPU, height, width);
+	noiseReductionGPU<<<numBlocks,threadsPerBlock>>>(im_GPU, im_out_NR, height, width);		
+	imageGradientGPU<<<numBlocks,threadsPerBlock>>>(im_out_NR, im_out_GPU, temp_Gradient, height, width, level);
 
 
 	//Devolución de valores y liberado de memoria.
 	cudaMemcpy(image_out, im_out_GPU, IMG_SIZE, cudaMemcpyDeviceToHost);
 	cudaFree(im_GPU);	
 	cudaFree(im_out_GPU);	
-
+	cudaFree(temp_Gradient);
+	cudaFree(im_out_NR);
 }
 
