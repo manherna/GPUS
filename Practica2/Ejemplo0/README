@@ -1,0 +1,4 @@
+CompilaciÃ³n:
+>> gcc DeviceInfo.c -std=c99 -I/usr/local/cuda/include -lOpenCL 
+EjecuciÃn
+>> ./a.out
