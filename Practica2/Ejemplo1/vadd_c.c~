@@ -52,7 +52,7 @@ extern float *getmemory1D( int nx );
 //
  
 const char *KernelSource = 
-"__kernel void vadd(__global const float * a, __global const float *b, __global float * out, unsigned int size)\n"\
+"__kernel void vadd(__global const float * a, __global const float *b, __global float * out, __global unsigned int size)\n"\
 "{"\
 "	int thread_id = get_global_id(0);\n"\
 "	if(thread_id >= 0 && thread_id < size)\n"\
