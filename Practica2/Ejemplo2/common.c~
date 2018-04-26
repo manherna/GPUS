@@ -262,7 +262,7 @@ void init1Drand(float *buffer, int n)
 	int i;
 
 	for (i=0; i<n; i++)
-		buffer[i] = 500.0*((float)(rand())/RAND_MAX)-500.0; /* [-500 500]*/
+		buffer[i] = i; /* [-500 500]*/
 }
 
 float *getmemory1D( int nx )

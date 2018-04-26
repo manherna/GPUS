@@ -59,7 +59,14 @@ void matrixTransposeLocal(__global float * output,
 			output[i*width + j] = block[threadIdxy * BLOCK_SIZE + threadIdxx];
 			
 
-		}		
-	} 	
+	
+		}	
+
+
+		
+	} 
+	
+	
+	
 
 }

@@ -220,7 +220,7 @@ int main(int argc, char **argv)
 	// set the kernel arguments
 	if ( clSetKernelArg(kernel, 0, sizeof(cl_mem), &dOutput) ||
          clSetKernelArg(kernel, 1, sizeof(cl_mem), &dInput) ||
-	 clSetKernelArg(kernel, 2, BLOCK_SIZE*sizeof(float), NULL) ||
+	 clSetKernelArg(kernel, 2, BLOCK_SIZE*sizeof(float), NULL) != CL_SUCCESS)
          clSetKernelArg(kernel, 3, sizeof(cl_uint), &n) != CL_SUCCESS)
 	{
 		printf("Unable to set kernel arguments. Error Code=%d\n",err);
