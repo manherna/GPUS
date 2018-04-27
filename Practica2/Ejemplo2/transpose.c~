@@ -9,7 +9,7 @@
 #define DEVICE CL_DEVICE_TYPE_DEFAULT
 #endif
 
-#define BLOCK_SIZE 16
+#define BLOCK_SIZE 2
 /* From common.c */
 extern double getMicroSeconds();
 extern char *err_code (cl_int err_in);
@@ -35,6 +35,7 @@ void writeMatrix(float *in, int n){
 			printf("%f ", in[j*n+i]);
 		printf("\n");
 	}
+	printf("\n");
 
 }
 
@@ -220,7 +221,7 @@ int main(int argc, char **argv)
 	// set the kernel arguments
 	if ( clSetKernelArg(kernel, 0, sizeof(cl_mem), &dOutput) ||
          clSetKernelArg(kernel, 1, sizeof(cl_mem), &dInput) ||
-	 clSetKernelArg(kernel, 2, BLOCK_SIZE*sizeof(float), NULL) != CL_SUCCESS)
+	 clSetKernelArg(kernel, 2, (BLOCK_SIZE*BLOCK_SIZE *sizeof(cl_mem)), NULL) ||
          clSetKernelArg(kernel, 3, sizeof(cl_uint), &n) != CL_SUCCESS)
 	{
 		printf("Unable to set kernel arguments. Error Code=%d\n",err);
@@ -231,6 +232,13 @@ int main(int argc, char **argv)
 	global[0]= n;
 	global[1]= n;
 
+	//Como el Dim3 de CUDA, OpenCl necesita un numero en 3 dimensiones para mapear la cantidad de 
+	//Hilos y bloques
+	
+	size_t localDim[2];
+	localDim[0] = BLOCK_SIZE;
+	localDim[1] = BLOCK_SIZE;
+
 	// Enqueue the kernel object with 
 	// Dimension size = 2, 
 	// global worksize = global, 
@@ -238,7 +246,7 @@ int main(int argc, char **argv)
 	// No event wait list
 	double t0d = getMicroSeconds();
 	err = clEnqueueNDRangeKernel(command_queue, kernel, 2, NULL, 
-                                   global, BLOCK_SIZE, 0, NULL, NULL);
+                                   global, localDim, 0, NULL, NULL);
 	double t1d = getMicroSeconds();
 
 	if (err != CL_SUCCESS)
@@ -265,8 +273,9 @@ int main(int argc, char **argv)
 	double t1h = getMicroSeconds();
 
 	if (check(array1D_trans_GPU, array1D_trans, n*n)){
-
+		printf("CPU:\n");
 		writeMatrix(array1D_trans, n);
+		printf("GPU:\n");
 		writeMatrix(array1D_trans_GPU, n);
 		printf("\n\nTranspose Host-Device differs!!\n");
 		writeMatrix(array1D, n);
