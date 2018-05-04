@@ -302,5 +302,3 @@ int main(int argc, char **argv)
 	free(array1D_trans_GPU);
 	return 0;
 }
-
-
