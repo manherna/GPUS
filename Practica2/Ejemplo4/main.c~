@@ -219,6 +219,10 @@ void remove_noise(float *im, float *image_out,
 		}
 }
 
+void remove_noiseOCL(float *im, float * im_out, float thredshold, int window_size, int height, int width){
+
+
+}
 
 void freeMemory(unsigned char *imageUCHAR, float *imageBW, float *imageOUT)
 {

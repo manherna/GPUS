@@ -1,0 +1,52 @@
+#include "common.c"
+#include <stdio.h>
+#include "my_ocl.h"
+#include <CL/cl.h>
+
+
+void remove_noiseOCL(float *im, float *image_out, 
+	float thredshold, int window_size,
+	int height, int width)
+{
+
+	printf("Not Implemented yet!!\n");
+	cl_uint num_devs_returned;
+	cl_context_properties properties[3];
+	cl_device_id device_id;
+	cl_int err;
+	cl_platform_id platform_id;
+	cl_uint num_platforms_returned;
+	cl_context context;
+	cl_command_queue command_queue;
+	cl_program program;
+	cl_kernel kernel;
+	size_t global[2];
+	
+	// variables used to read kernel source file
+	FILE *fp;
+	long filelen;
+	long readlen;
+	char *kernel_src;  // char string to hold kernel source
+
+	cl_mem dInput; //Image input
+	cl_mem dOutput; //Image output
+
+	const int IMG_SIZE = height * width;
+
+
+
+}
+
+__kernel 
+void remNoiseKernel(float * im, float * im_out, float thredshold, int win_size, int h, int w)
+{
+
+
+
+
+
+
+
+
+
+}

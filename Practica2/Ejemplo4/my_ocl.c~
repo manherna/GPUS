@@ -172,7 +172,7 @@ void remove_noiseOCL(float *im, float *image_out,
 	// set the kernel arguments
 	if ( clSetKernelArg(kernel, 0, sizeof(cl_mem), &dInput) || 		//image in
          clSetKernelArg(kernel, 1, sizeof(cl_mem), &dOutput) ||			//image out
-         clSetKernelArg(kernel, 2, (BLOCK_SIZE*BLOCK_SIZE *sizeof(cl_mem)), NULL) || //Local memory
+         clSetKernelArg(kernel, 2, BLOCK_SIZE* BLOCK_SIZE * sizeof(clmem), &dOutput, NULL) || //Local memory
          clSetKernelArg(kernel, 3, sizeof(cl_float), &thredshold) ||		//Thredshold
          clSetKernelArg(kernel, 4, sizeof(cl_int), &window_size) ||		//window size
          clSetKernelArg(kernel, 5, sizeof(cl_int), &height) ||  		//height
