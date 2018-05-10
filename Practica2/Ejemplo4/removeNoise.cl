@@ -14,29 +14,37 @@ void remNoiseKernel(__global float * im, __global float * im_out, __local float 
 	float median;
 	int ws2 = (win_size-1)>>1; 
 
-	im_out[globalPy * w + globalPx] = im[globalPy * w + globalPx];
+	im_out[globalPy * w + globalPx] = 0.0;
 	
+	if(globalPx >=ws2 && globalPx < w-ws2 && globalPy >= ws2 && globalPy < h-ws2)
+	{
+		//im_out[globalPy * w + globalPx] = im[globalPy * w + globalPx];		
+		
+		for (int ii =-ws2; ii<=ws2; ii++)
+				for (int jj =-ws2; jj<=ws2; jj++)
+					window[(ii+ws2)*win_size + jj+ws2] = im[(globalPy+ii)*w + globalPx+jj];
+					
+		
+	int i, j;
+	float tmp;
 	
-
-
+	int size = win_size * win_size;
+	for (i=1; i<size; i++){
+		for (j=0 ; j<size - i; j++)
+			if (window[j] > window[j+1]){
+				tmp = window[j];
+				window[j] = window[j+1];
+				window[j+1] = tmp;
+			}
+	}
 	
-/*
-	for(i=ws2; i<height-ws2; i++)
-		for(j=ws2; j<width-ws2; j++)
-		{
-			for (ii =-ws2; ii<=ws2; ii++)
-				for (jj =-ws2; jj<=ws2; jj++)
-					window[(ii+ws2)*window_size + jj+ws2] = im[(i+ii)*width + j+jj];
+	median = window[(win_size*win_size-1)>>1];
+	if (fabs((median-im[globalPy*w+globalPx])/median) <=thredshold)
+		im_out[globalPy*w+ globalPx] = im[globalPy*w+globalPx];
+	else
+		im_out[globalPy*w+ globalPx] = median;
 
-			// SORT
-			buble_sort(window, window_size*window_size);
-			median = window[(window_size*window_size-1)>>1];
+	}
 
-			if (fabsf((median-im[i*width+j])/median) <=thredshold)
-				image_out[i*width + j] = im[i*width+j];
-			else
-				image_out[i*width + j] = median;
-
-				
-		}*/
 }
+	
