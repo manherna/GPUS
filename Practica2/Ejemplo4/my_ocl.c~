@@ -34,7 +34,7 @@ void remove_noiseOCL(float *im, float *image_out,
 	cl_mem dOutput; //Image output
 	cl_mem localMem;
 
-	const int IMG_SIZE = height * width;
+	
 	
 
 //----------------------------------- LECTURA DE KERNEL ----------------------------------
@@ -88,7 +88,6 @@ void remove_noiseOCL(float *im, float *image_out,
 		}
 	}
 	
-	// hasta aquí copió manu jejejejeejejejejejejejejej 
 	
 	
 	if (device_id == NULL)
@@ -125,6 +124,7 @@ void remove_noiseOCL(float *im, float *image_out,
 		printf("Unable to create command queue. Error Code=%d\n",err);
 		exit(1);
 	}
+	
 	 
 	// create program object from source. 
 	// kernel_src contains source read from file earlier
@@ -157,22 +157,25 @@ void remove_noiseOCL(float *im, float *image_out,
 		exit(1);
 	}
 
-	// create buffer objects to input and output args of kernel function
+	const int IMG_SIZE = sizeof(float)*height * width;
+	
+		// create buffer objects to input and output args of kernel function
 
 	dInput = clCreateBuffer(context, CL_MEM_READ_ONLY, IMG_SIZE, NULL, NULL);
 	dOutput = clCreateBuffer(context, CL_MEM_WRITE_ONLY, IMG_SIZE, NULL, NULL);
 
-	 err = clEnqueueWriteBuffer(commands, dInput, CL_TRUE, 0, IMG_SIZE, im, 0, NULL, NULL);
+
+	err = clEnqueueWriteBuffer(commands, dInput, CL_TRUE, 0, IMG_SIZE, im, 0, NULL, NULL);
     	if (err != CL_SUCCESS)
     	{
-        printf("Error: Failed to write h_a to source array!\n%s\n", err_code(err));
+        printf("Error: Failed to write dInput with source image!\n%s\n", err_code(err));
         exit(1);
     	}	
     	
 	// set the kernel arguments
 	if ( clSetKernelArg(kernel, 0, sizeof(cl_mem), &dInput) || 		//image in
          clSetKernelArg(kernel, 1, sizeof(cl_mem), &dOutput) ||			//image out
-         clSetKernelArg(kernel, 2, BLOCK_SIZE* BLOCK_SIZE * sizeof(clmem), &dOutput, NULL) || //Local memory
+         clSetKernelArg(kernel, 2, (BLOCK_SIZE*BLOCK_SIZE *sizeof(cl_mem)), NULL) || //Local memory
          clSetKernelArg(kernel, 3, sizeof(cl_float), &thredshold) ||		//Thredshold
          clSetKernelArg(kernel, 4, sizeof(cl_int), &window_size) ||		//window size
          clSetKernelArg(kernel, 5, sizeof(cl_int), &height) ||  		//height
@@ -185,15 +188,17 @@ void remove_noiseOCL(float *im, float *image_out,
 	}
 
 	// set the global work dimension size
-	global[0]= height;
-	global[1]= width;
+	global[0]= width;
+	global[1]= height;
+
+	printf("%d, %d", global[0], global[1]):
 
 	//Como el Dim3 de CUDA, OpenCl necesita un numero en 3 dimensiones para mapear la cantidad de 
 	//Hilos y bloques
 	
 	size_t localDim[2];
 	localDim[0] = BLOCK_SIZE;
-	localDim[1] = BLOCK_SIZE;
+	localDim[1] = BLOCK_SIZE; 
 
 	// Enqueue the kernel object with 
 	// Dimension size = 2, 
