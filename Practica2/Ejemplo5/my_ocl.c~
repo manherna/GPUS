@@ -193,6 +193,7 @@ double calc_piOCL(int n)
 	}
 	
 	double acc = 0.0;
+	double dn = n;
 	int x;
 	for(x = 0; x < n; x++)
 		acc +=  piValues[x];

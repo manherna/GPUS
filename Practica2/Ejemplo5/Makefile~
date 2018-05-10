@@ -3,7 +3,7 @@ ifndef CC
 	CC = gcc
 endif
 
-CCFLAGS=-O3 -lm -I/usr/local/cuda/include
+CCFLAGS=-O3 -lm
 
 LIBS = -lOpenCL -fopenmp
 
