@@ -25,7 +25,9 @@ int main() {
    for (int i = 0; i < N; i++) {
       a[i] = i;
     }
-
+ 	
+#pragma enter data
+	int C[N];
    // Compute on the GPU if OpenACC support - host if not
    #pragma acc kernels copy(b[0:N]) wait
    for (int i = 0; i < N; i++) {
