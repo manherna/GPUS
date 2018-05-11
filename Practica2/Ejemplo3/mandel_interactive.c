@@ -282,7 +282,7 @@ double calc_mandel_opencl()
 	dImage = clCreateBuffer(context, CL_MEM_READ_WRITE, size, NULL, NULL);
 
 	
-	err = clEnqueueWriteBuffer(commands, dImage, CL_TRUE, 0, size, tex, 0, NULL, NULL);
+	err = clEnqueueWriteBuffer(commands, dImage, CL_TRUE, 0, size, ((void*)tex), 0, NULL, NULL);
     	if (err != CL_SUCCESS)
     	{
         printf("Error: Failed to write h_a to source array!\n%s\n", err_code(err));
@@ -325,7 +325,7 @@ double calc_mandel_opencl()
 	double t1d = getMicroSeconds();
 
 	if (err != CL_SUCCESS)
-	{	
+	{	unsigned short *)
 		printf("Unable to enqueue kernel command. Error Code=%d\n",err);
 		exit(1);
 	}
@@ -351,7 +351,7 @@ double calc_mandel_opencl()
 //	printMATRIX(array1D, n);
 //	printMATRIX(array1D_trans_GPU, n);
 
-	// clean up
+	// clean upunsigned short *)
 	clReleaseProgram(program);
 	clReleaseKernel(kernel);
 	clReleaseCommandQueue(command_queue);

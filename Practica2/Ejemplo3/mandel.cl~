@@ -1,11 +1,14 @@
 
-typedef struct {unsigned char r, g, b;} rgb_t;
+__global typedef struct {unsigned char r, g, b;} rgb_t;
+
+
 __kernel
-void mandelKernel (__global rgb_t ** text, const int w, const int h,
+void mandelKernel (__global void * text, const int w, const int h,
 			 const int scale,const double cx,const double cy){
 	
 	int i = get_global_id(0);
 	int j = get_global_id(1);
+	
 
 	double x, y, zx, zy, zx2, zy2;
 	int iter;
@@ -15,7 +18,11 @@ void mandelKernel (__global rgb_t ** text, const int w, const int h,
 		
 	if(i*h+ j < w* h)
 	{	
-		rgb_t * pixel = tex [i*w+j];
+		rgb_t * pixel;
+		
+		pixel = &text[(i*w*sizeof(rgb_t))+j];
+		
+		//rgb_t * pixel = (rgb_t *) (text[i*(w*sizeof(rgb_t))+j]);
 		
 		y = (j - h/2) * scale + cy;		
 		x = (i - w/2) * scale + cx;
@@ -32,10 +39,12 @@ void mandelKernel (__global rgb_t ** text, const int w, const int h,
 			}
 			if (iter < min) min = iter;
 			if (iter > max) max = iter;
-			*(unsigned short *)pixel = iter;
+			pixel = iter;
 		
 		//hsv_to_rgb(*(unsigned short*)pixel, min, max, pixel);	
 		/*
+		
+		
 		if (min == max) max = min + 1;
 		if (invert) hue = max - (hue - min);
 		if (!saturation) {
