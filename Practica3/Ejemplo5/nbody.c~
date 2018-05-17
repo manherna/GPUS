@@ -65,9 +65,7 @@ void bodyForce(body *p, float dt, int n) {
 			}
 		}
 
-		p[i].vx += dt*Fx/p[i].m; 
-		p[i].vy += dt*Fy/p[i].m; 
-		p[i].vz += dt*Fz/p[i].m;
+		p[i].vx += dt*Fx/p[i].m; p[i].vy += dt*Fy/p[i].m; p[i].vz += dt*Fz/p[i].m;
 	}
 	
 	}
