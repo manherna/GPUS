@@ -155,10 +155,10 @@ void border(float *im, float *image_out,
 {
 	
 	t0 = get_time();
-	#pragma acc kernels loop independent reduction (+:tmp)
+	#pragma acc kernels loop independent 
 	for(i=ws2; i<height-ws2; i++)
 	{
-		#pragma acc loop independent
+		#pragma acc loop independent reduction (+:tmp)
 		for(j=ws2; j<width-ws2; j++)
 		{
 			tmp = 0.0;
