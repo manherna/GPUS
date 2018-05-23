@@ -273,12 +273,14 @@ void runTest( int argc, char** argv)
 	/********************/
 	/* Needleman-Wunsch */
 	/********************/
-	t0 = gettime();
 	
-
+#pragma acc data copy(nw_matrix[0:max_rows*max_cols]) copyin(blosum62[0:24*24], input1[0:max_cols], input2[0:max_rows]) 
+{
+	t0 = gettime();
 	/* Compute top-left matrix */
 
 	for( int i = 0 ; i < max_rows-2 ; i++){
+		#pragma acc kernels loop independent num_workers(i+1) 
 		for( idx = 0 ; idx <= i ; idx++){
 			index = (idx + 1) * max_cols + (i + 1 - idx);
 
@@ -299,7 +301,7 @@ void runTest( int argc, char** argv)
 	/* Compute diagonals matrix */
 	for( int i = max_rows-2; i < max_cols-2 ; i++){
 	//Sería inteligente redimensionar el tamaño de bloque cada vez que se lanzaran los kernels, para aumentar la eficiencia
-		#pragma acc kernels loop independent num_workers(MAXOF2(max_cols, max_rows)) copy(nw_matrix[0:max_rows*max_cols]) copyin(blosum62[0:24*24], input1[0:max_cols], input2[0:max_rows]) 
+		#pragma acc kernels loop independent num_workers(MAXOF2(max_cols, max_rows)) 
 		for( idx = 0 ; idx <= max_rows-2; idx++){
 			index = (idx + 1) * max_cols + (i + 1 - idx);
 
@@ -322,7 +324,7 @@ void runTest( int argc, char** argv)
 	/* Compute bottom-right matrix */
 
 	for( int i = max_rows-2; i >= 0 ; i--){
-		
+		#pragma acc kernels loop independent num_workers(i+1) 
 		for( idx = 0 ; idx <= i; idx++){
 			index =  ( idx+max_rows-1-i ) * max_cols + max_cols-idx-1 ;
 
@@ -342,7 +344,7 @@ void runTest( int argc, char** argv)
 	}
 
 	t1 = gettime();
-
+}
 	printf("\nPerformance %f GCUPS\n", 1.0e-9*((max_rows-1)*(max_cols-1)/(t1-t0)));
 	//printf("\nTime Taken: %f\n", (t1-t0));
 
@@ -413,7 +415,7 @@ void runTest( int argc, char** argv)
 		} else if(traceback == n ){
 			tmp1[pos1] = '-';
 			tmp2[pos2] = get_amino_symbol(input2[i-1]);
-			i--; pos1++; pos2++; continue;
+			i--; pos1++; pos2++; continue;MAXOF2
 		}
 	}
 	for (int i=0; i<pos1; i++)
