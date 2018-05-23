@@ -37,8 +37,7 @@ void bodyForce(body *p, float dt, int n) {
 	int i;
 	int j;
 
-#pragma acc data copy(p[0:n])
-	{		
+		
 	//Es mas inteligente paralelizar el primer bucle y no el segundo.
 	//Debido a la intedependencia de Fx, Fy y Fz. Las reducciones son caras en cuanto
 	//a rendimiento
@@ -70,11 +69,11 @@ void bodyForce(body *p, float dt, int n) {
 		p[i].vz += dt*Fz/p[i].m;
 	}
 	
-	}
 }
 
 void integrate(body *p, float dt, int n){
 	int i;
+	#pragma acc kernels loop
 	for (i = 0 ; i < n; i++) {
 		p[i].x += p[i].vx*dt;
 		p[i].y += p[i].vy*dt;
@@ -85,6 +84,7 @@ void integrate(body *p, float dt, int n){
 int main(const int argc, const char** argv) {
 
 	int nBodies = 1000;
+	double totalTime;
 	if (argc > 1) nBodies = atoi(argv[1]);
 
 	const float dt = 0.01f; // time step
@@ -93,16 +93,18 @@ int main(const int argc, const char** argv) {
 	body *p = (body*)malloc(nBodies*sizeof(body));
 
 	randomizeBodies(p, nBodies); // Init pos / vel data
+	#pragma acc data copy(p[0:nBodies])
+	{
+		double t0 = get_time();
+		int iter;
+		for (iter = 1; iter <= nIters; iter++) {
+			bodyForce(p, dt, nBodies); // compute interbody forces
+			integrate(p, dt, nBodies); // integrate position
+		}
 
-	double t0 = get_time();
-	
-	int iter;
-	for (iter = 1; iter <= nIters; iter++) {
-		bodyForce(p, dt, nBodies); // compute interbody forces
-		integrate(p, dt, nBodies); // integrate position
-	}
-
-	double totalTime = get_time()-t0; 
+		totalTime = get_time()-t0; 
+	}	
+	printf("Time taken: %f\n", totalTime);
 	printf("%d Bodies with %d iterations: %0.3f Millions Interactions/second\n", nBodies, nIters, 1e-6 * nBodies * nBodies / totalTime);
 
 	free(p);
